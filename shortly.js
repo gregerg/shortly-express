@@ -30,25 +30,33 @@ app.use(session({secret: 'keyboard cat',
 
 app.use(express.static(__dirname + '/public'));
 
+var restrict = function(req, res, next) {
+  if (req.session.user) {
+    next();
+  } else {
+    req.session.error = 'Access Denied You Goon!';
+    res.redirect('/login');
+  }
+};
 
-app.get('/',
+app.get('/', restrict,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create',
+app.get('/create', restrict,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/links',
+app.get('/links', restrict,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links',
+app.post('/links', restrict,
 function(req, res) {
   var uri = req.body.url;
 
@@ -115,14 +123,22 @@ app.post('/login', function(req, res) {
   db.knex('users')
     .where('username', '=', username)
     .then(function(users) {
-      if (users['0'].username === username) {
+      console.log(users.length);
+      // if (users.length === 0) {
+      //   res.redirect('/login');
+      // }
+      if (users.length !== 0 && users['0'].username === username) {
         var hash = bcrypt.hashSync(password, users['0'].salt);
         if (hash === users['0'].password) {
           req.session.regenerate(function() {
           req.session.user = username;
           res.redirect('/');
           });
+        } else {
+          res.redirect('/login');
         }
+      } else {
+        res.redirect('/login');
       }
     });
 
@@ -177,9 +193,10 @@ app.get('/logout', function(req, res) {
   });
 });
 
-// app.get('/restricted', restrict, function(req, res) { //restrict
-//   res.send('This is a restricted area' + req.session.user + '<a href ="/logout">Click Here To Logout</a>');
-// });
+
+app.get('/restricted', restrict, function(req, res) { //restrict
+  res.send('This is a restricted area' + req.session.user + '<a href ="/logout">Click Here To Logout</a>');
+});
 
 
 /************************************************************/

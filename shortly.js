@@ -94,39 +94,16 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 app.get('/login', function(req, res) {
-   res.send('<form method="post" action="/login">' +
-  '<p>' +
-    '<label>Username:</label>' +
-    '<input type="text" name="username">' +
-  '</p>' +
-  '<p>' +
-    '<label>Password:</label>' +
-    '<input type="text" name="password">' +
-  '</p>' +
-  '<p>' +
-    '<input type="submit" value="Login">' +
-  '</p>' +
-  '</form>');
+   res.render('login');
 });
 
 app.post('/login', function(req, res) {
-
   var username = req.body.username;
   var password = req.body.password;
-//   var salt = bcrypt.genSaltSync(10);
-//   var hash = bcrypt.hashSync(password, salt);
-  // debugger;
-  // db.knex(users)
-  // get user/pass from db
-  // compare pass to req.body.password
 
   db.knex('users')
     .where('username', '=', username)
     .then(function(users) {
-      console.log(users.length);
-      // if (users.length === 0) {
-      //   res.redirect('/login');
-      // }
       if (users.length !== 0 && users['0'].username === username) {
         var hash = bcrypt.hashSync(password, users['0'].salt);
         if (hash === users['0'].password) {
@@ -141,34 +118,10 @@ app.post('/login', function(req, res) {
         res.redirect('/login');
       }
     });
-
-
-  // if(username == 'Phillip' && password == 'Phillip'){
-  //   console.log('eff yeah bro!', username);
-  //   req.session.regenerate(function(){
-  //   req.session.user = username;
-  //   res.redirect('/');
-  //   });
-  // }
-  // else {
-  //    res.redirect('login');
-  // }
 });
 
 app.get('/signup', function(req, res) {
-   res.send('<form method="post" action="/signup">' +
-  '<p>' +
-    '<label>Username:</label>' +
-    '<input type="text" name="username">' +
-  '</p>' +
-  '<p>' +
-    '<label>Password:</label>' +
-    '<input type="text" name="password">' +
-  '</p>' +
-  '<p>' +
-    '<input type="submit" value="Sign Up">' +
-  '</p>' +
-  '</form>');
+   res.render('signup');
 });
 
 app.post('/signup', function(req, res) {

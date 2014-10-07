@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var bcrypt = require('bcrypt-nodejs');
+var restrict = require('express-restrict');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -22,6 +23,10 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+// use sessions?
+app.use(session({secret: 'keyboard cat',
+                 saveUninitialized: true,
+                 resave: true}));
 
 app.use(express.static(__dirname + '/public'));
 
@@ -80,8 +85,8 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
-app.get('/login', function(request, response) {
-   response.send('<form method="post" action="/login">' +
+app.get('/login', function(req, res) {
+   res.send('<form method="post" action="/login">' +
   '<p>' +
     '<label>Username:</label>' +
     '<input type="text" name="username">' +
@@ -96,41 +101,84 @@ app.get('/login', function(request, response) {
   '</form>');
 });
 
-// app.post('/login', function(request, response) {
+app.post('/login', function(req, res) {
 
-//   var username = request.body.username;
-//   var password = request.body.password;
-// //   var salt = bcrypt.genSaltSync(10);
-// //   var hash = bcrypt.hashSync(password, salt);
-//   // debugger;
-//   // db.knex(users)
-//   // get user/pass from db
-//   // compare pass to request.body.password
-//   //
-//   // if(username == 'Phillip' && password == 'Phillip'){
-//   //   request.session.regenerate(function(){
-//   //   request.session.user = username;
-//   //   response.redirect('/');
-//   //   });
-//   // }
-//   // else {
-//   //    res.redirect('login');
-//   // }
-// });
-
-// app.post('/signup', function(request, response) {
-//   var username = request.body.username;
-//   var password = request.body.password;
+  var username = req.body.username;
+  var password = req.body.password;
 //   var salt = bcrypt.genSaltSync(10);
 //   var hash = bcrypt.hashSync(password, salt);
-//   var user = new User({
-//     username: username,
-//     password: hash,
-//     salt: salt
-//   });
-//   user.save().then(function() {
+  // debugger;
+  // db.knex(users)
+  // get user/pass from db
+  // compare pass to req.body.password
 
-//   })
+  db.knex('users')
+    .where('username', '=', username)
+    .then(function(users) {
+      if (users['0'].username === username) {
+        var hash = bcrypt.hashSync(password, users['0'].salt);
+        if (hash === users['0'].password) {
+          req.session.regenerate(function() {
+          req.session.user = username;
+          res.redirect('/');
+          });
+        }
+      }
+    });
+
+
+  // if(username == 'Phillip' && password == 'Phillip'){
+  //   console.log('eff yeah bro!', username);
+  //   req.session.regenerate(function(){
+  //   req.session.user = username;
+  //   res.redirect('/');
+  //   });
+  // }
+  // else {
+  //    res.redirect('login');
+  // }
+});
+
+app.get('/signup', function(req, res) {
+   res.send('<form method="post" action="/signup">' +
+  '<p>' +
+    '<label>Username:</label>' +
+    '<input type="text" name="username">' +
+  '</p>' +
+  '<p>' +
+    '<label>Password:</label>' +
+    '<input type="text" name="password">' +
+  '</p>' +
+  '<p>' +
+    '<input type="submit" value="Sign Up">' +
+  '</p>' +
+  '</form>');
+});
+
+app.post('/signup', function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+  var user = new User({
+    username: username,
+    password: password
+  });
+
+  user.save().then(function() {
+    req.session.regenerate(function() {
+      req.session.user = username;
+      res.redirect('/');
+    });
+  });
+});
+
+app.get('/logout', function(req, res) {
+  req.session.destroy(function() {
+    res.redirect('/');
+  });
+});
+
+// app.get('/restricted', restrict, function(req, res) { //restrict
+//   res.send('This is a restricted area' + req.session.user + '<a href ="/logout">Click Here To Logout</a>');
 // });
 
 

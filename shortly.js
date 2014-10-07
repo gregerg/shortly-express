@@ -2,7 +2,9 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var cookieParser = require('cookie-parser');
+var session = require('express-session');
+var bcrypt = require('bcrypt-nodejs');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -20,27 +22,28 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/', 
+app.get('/',
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
+app.get('/create',
 function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
+app.get('/links',
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+app.post('/links',
 function(req, res) {
   var uri = req.body.url;
 
@@ -77,7 +80,58 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+app.get('/login', function(request, response) {
+   response.send('<form method="post" action="/login">' +
+  '<p>' +
+    '<label>Username:</label>' +
+    '<input type="text" name="username">' +
+  '</p>' +
+  '<p>' +
+    '<label>Password:</label>' +
+    '<input type="text" name="password">' +
+  '</p>' +
+  '<p>' +
+    '<input type="submit" value="Login">' +
+  '</p>' +
+  '</form>');
+});
 
+// app.post('/login', function(request, response) {
+
+//   var username = request.body.username;
+//   var password = request.body.password;
+// //   var salt = bcrypt.genSaltSync(10);
+// //   var hash = bcrypt.hashSync(password, salt);
+//   // debugger;
+//   // db.knex(users)
+//   // get user/pass from db
+//   // compare pass to request.body.password
+//   //
+//   // if(username == 'Phillip' && password == 'Phillip'){
+//   //   request.session.regenerate(function(){
+//   //   request.session.user = username;
+//   //   response.redirect('/');
+//   //   });
+//   // }
+//   // else {
+//   //    res.redirect('login');
+//   // }
+// });
+
+// app.post('/signup', function(request, response) {
+//   var username = request.body.username;
+//   var password = request.body.password;
+//   var salt = bcrypt.genSaltSync(10);
+//   var hash = bcrypt.hashSync(password, salt);
+//   var user = new User({
+//     username: username,
+//     password: hash,
+//     salt: salt
+//   });
+//   user.save().then(function() {
+
+//   })
+// });
 
 
 /************************************************************/

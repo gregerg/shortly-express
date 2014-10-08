@@ -5,7 +5,10 @@ var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var bcrypt = require('bcrypt-nodejs');
-var restrict = require('express-restrict');
+var methodOverride = require('method-override');
+var passport = require('passport');
+var GitHubStrategy = require('passport-github').Strategy;
+var morgan = require('morgan');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -16,32 +19,65 @@ var Click = require('./app/models/click');
 
 var app = express();
 
+var GITHUB_CLIENT_ID = "8927253e3faa24c169f1"
+var GITHUB_CLIENT_SECRET = "a11be2b14296297c5c212884f8fe595436b84b4b";
+
+
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function(obj, done) {
+  done(null, obj);
+});
+
+passport.use(new GitHubStrategy({
+    clientID: GITHUB_CLIENT_ID,
+    clientSecret: GITHUB_CLIENT_SECRET,
+    callbackURL: "http://127.0.0.1:4568/auth/github/callback"
+  },
+  function(accessToken, refreshToken, profile, done) {
+    // asynchronous verification, for effect...
+    process.nextTick(function () {
+
+      // To keep the example simple, the user's GitHub profile is returned to
+      // represent the logged-in user.  In a typical application, you would want
+      // to associate the GitHub account with a user record in your database,
+      // and return that user instead.
+      return done(null, profile);
+    });
+  }
+));
+
+
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
+app.use(morgan('dev'));
 app.use(partials());
-// Parse JSON (uniform resource locators)
-app.use(bodyParser.json());
-// Parse forms (signup/login)
-app.use(bodyParser.urlencoded({ extended: true }));
-// use sessions?
-app.use(session({secret: 'keyboard cat',
+app.use(session({secret: 'keyboard catniss everbean',
                  saveUninitialized: true,
                  resave: true}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(methodOverride());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(express.static(__dirname + '/public'));
 
 var restrict = function(req, res, next) {
-  if (req.session.user) {
-    next();
-  } else {
-    req.session.error = 'Access Denied You Goon!';
-    res.redirect('/login');
+  console.log('restrict function: user object = ',req.user);
+  if (req.isAuthenticated()) {
+    debugger;
+    return next();
   }
+  res.redirect('/login');
 };
 
 app.get('/', restrict,
 function(req, res) {
   res.render('index');
+  // res.render('index', { user: req.user });
 });
 
 app.get('/create', restrict,
@@ -93,6 +129,22 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+
+
+app.get('/account', restrict, function(req, res){
+  res.render('account', { user: req.user });
+});
+
+app.get('/auth/github', passport.authenticate('github'));
+
+app.get('/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/login' }),
+  function(req, res) {
+    console.log('auth/github/callback: id:', req.user.id, 'username:', req.user.username);
+    res.redirect('/');
+  }
+);
+
 app.get('/login', function(req, res) {
    res.render('login');
 });
@@ -141,9 +193,8 @@ app.post('/signup', function(req, res) {
 });
 
 app.get('/logout', function(req, res) {
-  req.session.destroy(function() {
-    res.redirect('/');
-  });
+  req.logout();
+  res.redirect('/');
 });
 
 

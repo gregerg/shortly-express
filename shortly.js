@@ -8,6 +8,7 @@ var bcrypt = require('bcrypt-nodejs');
 var methodOverride = require('method-override');
 var passport = require('passport');
 var GitHubStrategy = require('passport-github').Strategy;
+var FacebookStrategy = require('passport-facebook').Strategy;
 var morgan = require('morgan');
 
 var db = require('./app/config');
@@ -22,6 +23,8 @@ var app = express();
 var GITHUB_CLIENT_ID = "8927253e3faa24c169f1"
 var GITHUB_CLIENT_SECRET = "a11be2b14296297c5c212884f8fe595436b84b4b";
 
+var FACEBOOK_CLIENT_ID = "1538392606376067"
+var FACEBOOK_CLIENT_SECRET = "b1656aa89e997a0d07e149676cb0ec1e"
 
 passport.serializeUser(function(user, done) {
   done(null, user);
@@ -49,6 +52,23 @@ passport.use(new GitHubStrategy({
   }
 ));
 
+passport.use(new FacebookStrategy({
+    clientID: FACEBOOK_CLIENT_ID,
+    clientSecret: FACEBOOK_CLIENT_SECRET,
+    callbackURL: "http://localhost:4568/auth/facebook/callback"
+  },
+  function(accessToken, refreshToken, profile, done) {
+    // asynchronous verification, for effect...
+    process.nextTick(function () {
+
+      // To keep the example simple, the user's GitHub profile is returned to
+      // represent the logged-in user.  In a typical application, you would want
+      // to associate the GitHub account with a user record in your database,
+      // and return that user instead.
+      return done(null, profile);
+    });
+  }
+));
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -141,6 +161,16 @@ app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/login' }),
   function(req, res) {
     console.log('auth/github/callback: id:', req.user.id, 'username:', req.user.username);
+    res.redirect('/');
+  }
+);
+
+app.get('/auth/facebook', passport.authenticate('facebook'));
+
+app.get('/auth/facebook/callback',
+  passport.authenticate('facebook', { failureRedirect: '/login' }),
+  function(req, res) {
+    console.log('auth/facebook/callback: id:', req.user.id, 'username:', req.user.username);
     res.redirect('/');
   }
 );
